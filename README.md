@@ -1,2 +1,2 @@
 # GestureSenseLibrary
-Library for using data obtained from ZX Gesture Sense using serial communication
+Library for using data obtained from ZX Gesture Sense via serial communication
