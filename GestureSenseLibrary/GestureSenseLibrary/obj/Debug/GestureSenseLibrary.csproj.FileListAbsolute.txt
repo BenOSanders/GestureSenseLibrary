@@ -1,0 +1,6 @@
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\bin\Debug\GestureSenseLibrary.dll
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\bin\Debug\GestureSenseLibrary.pdb
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.csproj.CoreCompileInputs.cache
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.dll
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.pdb
+C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.csprojResolveAssemblyReference.cache
