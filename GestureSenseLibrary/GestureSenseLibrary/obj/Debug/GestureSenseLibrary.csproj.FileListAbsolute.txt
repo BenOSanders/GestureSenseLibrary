@@ -1,6 +1,6 @@
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\bin\Debug\GestureSenseLibrary.dll
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\bin\Debug\GestureSenseLibrary.pdb
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.csproj.CoreCompileInputs.cache
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.dll
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.pdb
-C:\Users\bensa\source\repos\GestureSenseLibrary\GestureSenseLibrary\obj\Debug\GestureSenseLibrary.csprojResolveAssemblyReference.cache
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/bin/Debug/GestureSenseLibrary.dll
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/bin/Debug/GestureSenseLibrary.pdb
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/obj/Debug/GestureSenseLibrary.csprojAssemblyReference.cache
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/obj/Debug/GestureSenseLibrary.csproj.CoreCompileInputs.cache
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/obj/Debug/GestureSenseLibrary.dll
+/Users/bensanders/repos/GestureSenseLibrary/GestureSenseLibrary/GestureSenseLibrary/obj/Debug/GestureSenseLibrary.pdb

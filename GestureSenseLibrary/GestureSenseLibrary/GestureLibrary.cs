@@ -1,108 +1,287 @@
-﻿using System;
+﻿/* Author: Benjamin Sanders
+ *         Co-Op | First Term | IT/OPT | Innovations
+ *         bosanders@crimson.ua.edu
+ *         
+ * Project: MBUSI Innovation - Serial Comminication Library
+ *          This library was created to read, manipulate, and usitlize data sent over a UART connection on a serial port. A
+ *          basic understanding of serial comminication is recommended when reading through or using this library. While this
+ *          library was created specifically for use with the ZX Gesture Sense, it can be used for any Serial Communication with minimal modification.
+ *          ZX Gesture Sense Datasheet: https://cdn.sparkfun.com/assets/learn_tutorials/3/4/5/XYZ_Interactive_Technologies_-_ZX_SparkFun_Sensor_Datasheet.pdf 
+ * */
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO.Ports;
 using System.Collections;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using System.Threading;
 
 namespace GestureSenseLibrary
 {
-    public class GestureLibrary
+    ///<summary>
+    /// This class contains functions that deal with opening and reading from Serial Ports.
+    ///</summary>
+    public class PortReading
     {
-        /*  Creates and returns serial port with default settings and a baud rate of 115200
-         * 
-         * */
-        public static SerialPort AccessGS(string portName, int baud = 115200)
+        /// <summary>
+        /// This function creates a port to be read from. Note, you must open the port (port.Open()) after calling
+        /// this function in your program.
+        /// </summary>
+        /// <param name="portName">Port name and number. Ex: COM4</param>
+        /// <param name="baud">Speed at which the port is read from. Default is 115200</param>
+        /// <returns>The newly created port</returns>
+        public static SerialPort CreatePort(string portName, int baud = 115200)
         {
-            SerialPort port = new SerialPort(portName);
+            // Default SerialPort settings.
+            var port = new SerialPort(portName);
+            port.DataBits = 8;
+            port.Parity = Parity.None;
+            port.StopBits = StopBits.One;
             port.BaudRate = baud;
-            
+
             return port;
         }
 
-        /*  Reades data from port and puts it into a queue
-         * 
-         * */
-        public static Queue ReadPort(SerialPort port)
+        /// <summary>
+        /// This function reads from an open COM port and puts the data read into a queue. This function works
+        /// for one section of data at a time and should not be used for applications that need data read in
+        /// constantly.
+        /// </summary>
+        /// <param name="port">Serial port to read from</param>
+        /// <returns>A queue populated with data from the port</returns>
+        public static Queue ReadSerialPort(SerialPort port)
         {
-            Queue myData = new Queue();
-            //port.Open();
+            var myData = new Queue();
+
             try
             {
-                if (port.IsOpen)
+                if (!port.IsOpen)
                 {
                     throw new Exception();
                 }
             }
             catch (Exception)
             {
-                Console.Out.WriteLine("port is not open!!");
+                Console.Out.WriteLine("port is not open!");
             }
-            var b = port.ReadByte();
+            int val = port.ReadByte();
 
-            //Console.WriteLine("Start");
-            if ((int)b != 0)
+            Console.WriteLine("Reading from port...");
+
+            while (val != 255)
             {
-                while ((int)b != 255)
+                // Uncomment to see all data read from port.
+                // Console.WriteLine(val);
+
+                // If value read from port is 255, or the value is between 0 and 252 (end of read).
+                if ((val == 255) || ((val < 252) && (val > 0)))
                 {
-                    //Console.WriteLine(b);
-                    if ((int)b == 255 || ((int)b < 252 && (int)b > 0))
-                    {
-                        myData.Enqueue(b);
-                    }
-                    b = port.ReadByte();
+                    // Uncomment to see all data read from port.
+                    // Console.WriteLine(b);
+                    myData.Enqueue(val);
+                }
+                val = port.ReadByte();
+
+                // Clears the queue if it grows too large due to an extended read.
+                if ((myData.Count > 300) && (val <= 240))
+                {
+                    Console.WriteLine("Clearning queue for overflow protection. Please remove any obstructions from sensor's FOV.");
+                    myData.Clear();
                 }
             }
             return myData;
         }
 
-        /* Splits data from Queue into x values and z values
-         * 
-         * */
-        public static void SortData(Queue myData, ref Queue xQueue, ref Queue zQueue)
+        /// <summary>
+        /// This function reads in data from a port into a queue. This function is meant
+        /// to be used to constantly read in data from a port.
+        /// </summary>
+        /// <param name="myData">Queue, passed by reference, to be populated by the function</param>
+        /// <param name="port">Port to be read from at 115200 baud</param>
+        public static void ReadPortToQueue(ref Queue myData, SerialPort port)
         {
-            int xMax = -1000;                   //Initializes to a value much smaller than possible on the sensor
-            int xMin = -1000;                   //Initializes to a value much smaller than possible on the sensor
-            int zMax = -1000;                   //Initializes to a value much smaller than possible on the sensor
-            int zMin = -1000;                   //Initializes to a value much smaller than possible on the sensor
-            int xRange = 0;
-            int zRange = 0;
+            try
+            {
+                if (!port.IsOpen)
+                {
+                    throw new Exception();
+                }
+            }
+            catch (Exception)
+            {
+                Console.Out.WriteLine("port is not open!");
+            }
 
+            int val = port.ReadByte();
 
-            if (myData.Count == 0)               //checks for empty queue
+            Console.WriteLine("Reading from port...");
+
+            // While value is not 0, to keep loop running constnatly.
+            while (val != 0)
+            {
+                // While value is not 255 which is the End Of Transmissoin byte.
+                while (val != 255)
+                {
+                    // Uncomment to see all data read from port.
+                    // Console.WriteLine(val);
+
+                    // If value is between 0 and 252.
+                    if ((val <= 252) && (val > 0))
+                    {
+                        // Uncomment to see all data read from port.
+                        // Console.WriteLine(val);
+                        myData.Enqueue(val);
+                    }
+                    val = port.ReadByte();
+                }
+                val = port.ReadByte();
+            }
+            return;
+        }
+
+        /// <summary>
+        /// This function reads data from a port and ignores all data until a gesture code is sent
+        /// </summary>
+        /// <param name="port">Open serial port to read from</param>
+        /// <returns>Int value related to a gesture</returns>
+        public static int ReadGestureCode(SerialPort port)
+        {
+            try
+            {
+                if (!port.IsOpen)
+                {
+                    throw new Exception();
+                }
+            }
+            catch (Exception)
+            {
+                Console.Out.WriteLine("port is not open!");
+            }
+
+            Console.WriteLine("Reading from port...");
+
+            int val = port.ReadByte();
+
+            // While value is not 255 which is the End Of Transmissoin byte.
+            while (val != 255)
+            {
+                // Uncomment to see all data read from port.
+                // Console.WriteLine(val);
+
+                // If value read from port is 252, next value is a gesture.
+                if (val == 252)
+                {
+                    // Uncomment to see all data read from port.
+                    // Console.WriteLine(val);
+                    return port.ReadByte();
+                }
+                val = port.ReadByte();
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// This function reads gesture codes and the following parameter from a serial port into a queue
+        /// </summary>
+        /// <param name="port">Open serial port to read from</param>
+        /// <returns>Queue holding a gesture code and parameter</returns>
+        public static Queue ReadGestureCodeAndParam(SerialPort port)
+        {
+            var myQueue = new Queue();
+            var val = 0;
+
+            try
+            {
+                if (!port.IsOpen)
+                {
+                    throw new Exception();
+                }
+            }
+            catch (Exception)
+            {
+                Console.Out.WriteLine("port is not open!");
+            }
+
+            Console.WriteLine("Reading from port...");
+
+            val = port.ReadByte();
+
+            // While value is not 255 which is the End Of Transmissoin byte.
+            while (val != 255)
+            {
+                // Uncomment to see all data read from port.
+                // Console.WriteLine(val);
+
+                // If value read from port is 252, next value is a gesture.
+                if (val == 252)
+                {
+                    // Uncomment to see all data read from port.
+                    // Console.WriteLine(val);
+
+                    val = port.ReadByte();
+
+                    // While value is between -1 and 241.
+                    while ((val >= 0) && (val <= 240))
+                    {
+                        myQueue.Enqueue(val);
+                        // Uncomment to see values read from port.
+                        // Console.WriteLine(val);
+                        val = port.ReadByte();
+                    }
+                    return myQueue;
+                }
+                val = port.ReadByte();
+            }
+            return myQueue;
+        }
+    }
+
+    ///<summary>
+    /// This class contains functions that deal with processing and using data stored in queues.
+    ///</summary>
+    public class DataProcessing
+    {
+        /// <summary>
+        /// This function takes in a queue of raw port data and splits it into x and z values which are stored in an x and z queue. This funciton is meant to
+        ///     be run each time it is needed.
+        /// </summary>
+        /// <param name="myData">Queue of raw data</param>
+        /// <param name="xQueue">Queue to store x values</param>
+        /// <param name="zQueue">Queue to store z values</param>
+        public static void SortDataXAndZ(Queue myData, ref Queue xQueue, ref Queue zQueue)
+        {
+            // Checks for empty queue.
+            if (myData.Count == 0)
             {
                 return;
             }
 
-            while (myData.Count > 0)                                    //while queue is not empty
+            // While queue is not empty.
+            while (myData.Count > 0)
             {
-                while (myData.Count > 0 && (int)myData.Peek() != 255)   //collect data group
+                // Collect data group.
+                while (myData.Count > 0 && (int)myData.Peek() != 255)
                 {
-                    if ((int)myData.Peek() == 250)                      //if value in queue is 250, read x
+                    // If value in queue is 250, read x.
+                    if ((int)myData.Peek() == 250)
                     {
-                        myData.Dequeue();                               //dequeues message byte
-                        if (xMax < (int)myData.Peek())
-                        {
-                            xMax = (int)myData.Peek();
-                        }
-                        else if (xMin > (int)myData.Peek())
-                        {
-                            xMin = (int)myData.Peek();
-                        }
-                        xQueue.Enqueue(myData.Dequeue());               //moves x value into x queue
+                        // Dequeues message byte.
+                        myData.Dequeue();
+                        // Moves x value into x queue.
+                        xQueue.Enqueue(myData.Dequeue());
                     }
-                    else if ((int)myData.Peek() == 251)                 //if value in queue is 251, read z
+                    // If value in queue is 251, read z.
+                    else if ((int)myData.Peek() == 251)
                     {
-                        myData.Dequeue();                               //dequeue message byte
-                        if (zMax < (int)myData.Peek())
-                        {
-                            zMax = (int)myData.Peek();
-                        }
-                        else if (zMin > (int)myData.Peek())
-                        {
-                            zMin = (int)myData.Peek();
-                        }
-                        zQueue.Enqueue(myData.Dequeue());               //moves z value into z queue
+                        // Dequeue message byte.
+                        myData.Dequeue();
+                        // Moves z value into z queue.
+                        zQueue.Enqueue(myData.Dequeue());
                     }
                     else
                     {
@@ -110,50 +289,107 @@ namespace GestureSenseLibrary
                     }
                 }
             }
-
-            xRange = xMax - xMin;
-            zRange = zMax - zMin - 15;
-
             return;
         }
 
-
-        /* Processes data from queue into gestures
-         * 
-         * takes in queue and returns an int based off gesture
-         * -1: no gesture
-         * 1: value increased (right swipe)
-         * 2: value decreased (left swipe)
-         * 3: value increased then decreased (left bump)
-         * 4: value decreased then increased (right bump)
-         * */
-        public static int Gesture(Queue xQueue)
+        /// <summary>
+        /// This function takes in data from a queue and cleans it to be used by a scrolling function for scrolling applications.
+        /// </summary>
+        /// <param name="myQueue">Queue of raw data</param>
+        /// <param name="newQueue">Queue of clean data</param>
+        public static void SortDataForScroll(ref Queue myQueue, ref Queue newQueue)
         {
-            if (xQueue.Count == 0) //Checks if queue is empty
+            // Waits for queue to be filled.
+            while (myQueue.Count == 0)
+            {
+                Thread.Sleep(25);
+            }
+
+            var readVal = 0;
+
+            // While the queue is not empty.
+            while (myQueue.Count > 0)
+            {
+                readVal = (int)myQueue.Dequeue();
+
+                // Next value is x value.
+                if (readVal == 250)
+                {
+                    // If myQueue isn't empty and the next value is less than 240.
+                    if (myQueue.Count > 0 && (int)myQueue.Peek() < 240)
+                        // Move the value into the temp variable.
+                        readVal = (int)myQueue.Dequeue();
+
+                    // Moves value into the queue.
+                    newQueue.Enqueue(readVal);
+                }
+                // Next value is z value.
+                else if (readVal == 251)
+                {
+                    // If myQueue isn't empty and the next value is less than 240.
+                    if (myQueue.Count > 0 && (int)myQueue.Peek() < 240)
+                        // Moves the value into the temp variable.
+                        readVal = (int)myQueue.Dequeue();
+
+                    // Resets value to be positive.
+                    readVal *= -1;
+
+                    // Moves value into queue.
+                    newQueue.Enqueue(readVal);
+                }
+                else if (myQueue.Count != 0)
+                {
+                    myQueue.Dequeue();
+                }
+
+                while (myQueue.Count == 0)
+                {
+                    Thread.Sleep(25);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Processes data from queue into a gesture
+        /// -1: no gesture
+        /// 1: right swipe (value increased)
+        /// 2: left swipe (value decreased
+        /// 3: left bump (value increased then decreased)
+        /// 4: right bump (value decreased then increased)
+        /// </summary>
+        /// <param name="xQueue">Queue of cleaned sensor data</param>
+        /// <returns>Int related to a gesture</returns>
+        public static int ProcessGesture(Queue xQueue)
+        {
+            // Checks if queue is empty.
+            if (xQueue.Count == 0)
             {
                 return -1;
             }
-            int sum = 0;
-            int traverse = 0;
+            var sum = 0;
+            var traverse = 0;
             int xMax = (int)xQueue.Peek();
             int xMin = (int)xQueue.Peek();
             traverse = xMax;
             int previous = traverse;
             int firstVal = traverse;
             int secondVal = traverse;
-            int lastVal = 0;
-            int total = 0;
-            int counter = 0;
+            var lastVal = 0;
+            var counter = 0;
             int numVals = xQueue.Count;
-            
+
+            // While the queue is not empty.
             while (xQueue.Count > 0)
             {
-                if (counter == 0) //removes first item
+                // Removes first item.
+                if (counter == 0)
                 {
                     xQueue.Dequeue();
-                    if (xQueue.Count != 0 && xQueue.Count > 3)
+
+                    // If the queue is holding more than 3 values.
+                    if (xQueue.Count > 3)
                     {
-                        //Resetting first item
+                        // Resetting first item.
                         traverse = (int)xQueue.Peek();
                         firstVal = traverse;
                         xMax = traverse;
@@ -165,7 +401,7 @@ namespace GestureSenseLibrary
                     }
                 }
 
-                //find max and min
+                // Find max and min.
                 if (traverse > xMax)
                 {
                     xMax = traverse;
@@ -175,87 +411,274 @@ namespace GestureSenseLibrary
                     xMin = traverse;
                 }
 
-                if (traverse >= previous)                //add if value is increasing
+                // Add if the value is increasing.
+                if (traverse >= previous)
                 {
                     sum += traverse;
-                    total += traverse;
                 }
+                // Subtract if the value is decreasing.
                 else
-                {                                //subtract if value is decreasing
+                {
                     sum -= traverse;
-                    total -= traverse;
                 }
 
-                previous = traverse;                    //stores previous value
-                xQueue.Dequeue();                       //removes current values from queue
-                if (xQueue.Count != 0)                  //if queue isn't empty
-                    traverse = (int)xQueue.Peek();      //updates current value
+                // Stores the previous value.
+                previous = traverse;
+
+                // Removes current values from queue.
+                xQueue.Dequeue();
+
+                // If queue isn't empty.
+                if (xQueue.Count != 0)
+                    // Updates current value.
+                    traverse = (int)xQueue.Peek();
 
                 counter++;
-                if (counter == 1)                       //if second value in queue
+
+                // If current value is second value in queue.
+                if (counter == 1)
                     secondVal = traverse;
             }
             lastVal = previous;
 
-
-            if (firstVal < xMax && secondVal < xMax && lastVal < xMax)          //if the first value (and !OR! second value for redundency) is less than the max then hand entered and exited from left so BUMP_LEFT
+            // If the first value (and second value for redundency) is less than
+            // the max, then the reflector entered and exited from left.
+            if ((firstVal < xMax) && (secondVal < xMax) && (lastVal < xMax))
             {
-                Console.WriteLine("BUMP_LEFT");
-
+                Console.WriteLine("Gesture: BUMP_LEFT");
                 Console.WriteLine("*******************");
                 return 3;
             }
-            else if (sum > xMax)                              //it is right swipe
+            // Values increased.
+            else if (sum > xMax)
             {
-                Console.WriteLine("RIGHT_SWIPE");
-
+                Console.WriteLine("Gesture: RIGHT_SWIPE");
                 Console.WriteLine("*******************");
                 return 1;
             }
-            else if (/*firstVal > xMin && */secondVal > xMin && lastVal > xMin) //if the first value (or second value for redundency) is greater than the min then hand entered and exited from right so BUMP_RIGHT
+            // If the first value (and second value for redundency) is greater than the
+            // min, then the reflector entered and exited from right.
+            else if ((secondVal > xMin) && (lastVal > xMin))
             {
-                Console.WriteLine("BUMP_RIGHT");
-
+                Console.WriteLine("Gesture: BUMP_RIGHT");
                 Console.WriteLine("*******************");
                 return 4;
             }
-            else if (sum < xMin)                              //it is left swipe
+            // Values decreased.
+            else if (sum < xMin)
             {
-                Console.WriteLine("LEFT_SWIPE");
-
+                Console.WriteLine("Gesture: LEFT_SWIPE");
                 Console.WriteLine("*******************");
                 return 2;
             }
             return -1;
         }
 
-
-        public static void GestureSetter(int gestureCode)
+        /// <summary>
+        /// Sends keystoke based off gesture code received.
+        /// </summary>
+        /// <param name="gestureCode">Int relating to a gesture</param>
+        public static void SendKeystroke(int gestureCode)
         {
             switch (gestureCode)
             {
-                case 1:                                                     //right swipe
+                // Right swipe.
+                case 1:
+                    // Click right once.
                     System.Windows.Forms.SendKeys.SendWait("{RIGHT}");
                     break;
-                case 2:                                                     //left swipe
+
+                // Left swipe.
+                case 2:
+                    // Click left once.
                     System.Windows.Forms.SendKeys.SendWait("{LEFT}");
                     break;
-                case 3:                                                     //right bump
+
+                // Right bump.
+                case 3:
+                    // Click left twice.
                     System.Windows.Forms.SendKeys.SendWait("{LEFT 2}");
                     break;
-                case 4:                                                     //left bump
+
+                // Left bump.
+                case 4:
+                    // Click right twice.
                     System.Windows.Forms.SendKeys.SendWait("{RIGHT 2}");
                     break;
-                //case 5:
-                //    System.Windows.Forms.SendKeys.SendWait("^({F5})");
-                //    break;
-                //case 6:
-                //    System.Windows.Forms.SendKeys.SendWait("{ESC}");
-                //    break;
+                // Add more cases here for more functionality.
                 default:
                     Console.WriteLine("Error: No Gesture");
                     break;
             }
+        }
+
+        /// <summary>
+        /// Takes in cleaned data from sensor and identifies the direction to scroll
+        /// </summary>
+        /// <param name="newQueue">queue of cleaned senor data</param>
+        public static void ProcessScroll(ref Queue newQueue)
+        {
+            var xVal = 0;
+            var zVal = 0;
+            var count = 0;
+            var readVal = 0;
+            var returnVal = 0;
+
+            // Waits for queue to be filled.
+            while (newQueue.Count == 0)
+            {
+                Thread.Sleep(25);
+            }
+
+            // While the queue is not empty.
+            while (newQueue.Count > 0)
+            {
+                // Throws away 11 values before reading two to slow down scrolling.
+                while (count < 11)
+                {
+                    if (newQueue.Count != 0)
+                    {
+                        readVal = (int)newQueue.Dequeue();
+                        // Uncomment to see data being processed.
+                        // Console.WriteLine(readVal);
+
+                        // If negative, then it is a z value. Else, it is positive and an x value.
+                        if (readVal < 0)
+                        {
+                            // Resets value to positive.
+                            readVal *= -1;
+                            zVal = readVal;
+                        }
+                        else if (readVal > 0)
+                        {
+                            xVal = readVal;
+                        }
+                    }
+                    count++;
+                }
+
+                count = 0;
+
+                // Adjust vales to change the size of the scrolling hitboxes. A graph showing the hitboxes
+                // is available in the info documentation.
+                // Scroll down.
+                if (zVal <= 30 && xVal > 90 && xVal < 150)
+                {
+                    returnVal = SendKeystrokeToScroll(1);
+                }
+                // Scroll up.
+                else if (zVal >= 90 && xVal > 90 && xVal < 150)
+                {
+                    returnVal = SendKeystrokeToScroll(2);
+                }
+                // Scroll left.
+                else if (xVal <= 90 && zVal > 30 && zVal < 80)
+                {
+                    returnVal = SendKeystrokeToScroll(3);
+                }
+                // Scroll right.
+                else if (xVal >= 150 && zVal > 30 && zVal < 80)
+                {
+                    returnVal = SendKeystrokeToScroll(4);
+                }
+
+                if((returnVal == -1) || (newQueue.Count > 300))
+                {
+                    newQueue.Clear();
+                }
+                else
+                {
+                    returnVal = 0;
+                }
+
+                // Waits for queue to be filled.
+                while (newQueue.Count == 0)
+                {
+                    Thread.Sleep(25);
+                }
+                Console.Clear();
+            }
+            return;
+        }
+
+
+    // Code below written by StackOverflow user "Jorge Ferreira" found at this link:
+    // https://stackoverflow.com/questions/115868/how-do-i-get-the-title-of-the-current-active-window-using-c
+
+        // Creates pointer to identify active window.
+        [DllImport("user32.dll")]
+        static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+        // Finds and returns active window.
+        private static string GetActiveWindowTitle()
+        {
+            const int nChars = 256;
+            StringBuilder Buff = new StringBuilder(nChars);
+            IntPtr handle = GetForegroundWindow();
+
+            if (GetWindowText(handle, Buff, nChars) > 0)
+            {
+                return Buff.ToString();
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Recieves direction to scroll then sends related keystokes to windows.
+        /// </summary>
+        /// <param name="direction">Int related to a keystoke or comination of keystokes to send</param>
+        public static int SendKeystrokeToScroll(int direction)
+        {
+            // Creates process variable for excel.
+            var excel = Process.GetProcessesByName("EXCEL").FirstOrDefault();
+            var chrome = Process.GetProcessesByName("chrome").FirstOrDefault();
+
+            // If Excel and Google Chrome are not currently open.
+            if ((excel == null) && (chrome == null))
+            {
+                Console.WriteLine("Program Not Open");
+                return -1;
+            }
+
+            // If Excel or Google Chrome are not the active windows.
+            if ((GetActiveWindowTitle().Contains("excel") != true) && (GetActiveWindowTitle().Contains("chrome") != true))
+            {
+                Console.WriteLine("Excel is not the active window...");
+                return -1;
+            }
+
+            Console.WriteLine("Scrolling...");
+
+            // Chooses direction to scroll and sends keysrokes.
+            switch (direction)
+            {
+                // Scroll down.
+                case 1:
+                    System.Windows.Forms.SendKeys.SendWait("{SCROLLLOCK}{DOWN}");
+                    break;
+
+                // Scroll up.
+                case 2:
+                    System.Windows.Forms.SendKeys.SendWait("{SCROLLLOCK}{Up}");
+                    break;
+
+                // Scroll left.
+                case 3:
+                    System.Windows.Forms.SendKeys.SendWait("{SCROLLLOCK}{LEFT}");
+                    break;
+
+                // Scroll right.
+                case 4:
+                    System.Windows.Forms.SendKeys.SendWait("{SCROLLLOCK}{RIGHT}");
+                    break;
+                default:
+                    // Nothing to do here.
+                    break;
+            }
+            return 1;
         }
     }
 }
