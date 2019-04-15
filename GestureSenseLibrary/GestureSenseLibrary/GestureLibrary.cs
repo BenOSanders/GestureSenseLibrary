@@ -2,23 +2,22 @@
  *         Co-Op | First Term | IT/OPT | Innovations
  *         bosanders@crimson.ua.edu
  *         
- * Project: MBUSI Innovation - Serial Comminication Library
+ * Purpose: Serial Comminication Library
  *          This library was created to read, manipulate, and usitlize data sent over a UART connection on a serial port. A
  *          basic understanding of serial comminication is recommended when reading through or using this library. While this
- *          library was created specifically for use with the ZX Gesture Sense, it can be used for any Serial Communication with minimal modification.
+ *          library was created specifically for use with the ZX Gesture Sense, it can be used for any serial communication with slight modification.
+ *          
  *          ZX Gesture Sense Datasheet: https://cdn.sparkfun.com/assets/learn_tutorials/3/4/5/XYZ_Interactive_Technologies_-_ZX_SparkFun_Sensor_Datasheet.pdf 
  * */
 
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO.Ports;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using System.Threading;
 
 namespace GestureSenseLibrary
@@ -29,7 +28,7 @@ namespace GestureSenseLibrary
     public class PortReading
     {
         /// <summary>
-        /// This function creates a port to be read from. Note, you must open the port (port.Open()) after calling
+        /// This function creates a connection to a port to be read from. Note, you must open the port (yourPort.Open()) after calling
         /// this function in your program.
         /// </summary>
         /// <param name="portName">Port name and number. Ex: COM4</param>
@@ -57,34 +56,34 @@ namespace GestureSenseLibrary
         public static Queue ReadSerialPort(SerialPort port)
         {
             var myData = new Queue();
+            var val = 0;
 
-            try
-            {
-                if (!port.IsOpen)
-                {
-                    throw new Exception();
-                }
-            }
-            catch (Exception)
+            // If port is not open.
+            if (!port.IsOpen)
             {
                 Console.Out.WriteLine("port is not open!");
+                return null;
             }
-            int val = port.ReadByte();
+
+            // Reads initial data.
+            val = port.ReadByte();
 
             Console.WriteLine("Reading from port...");
 
             while (val != 255)
             {
-                // Uncomment to see all data read from port.
+                // Uncomment below to see all data read from port.
                 // Console.WriteLine(val);
 
                 // If value read from port is 255, or the value is between 0 and 252 (end of read).
                 if ((val == 255) || ((val < 252) && (val > 0)))
                 {
-                    // Uncomment to see all data read from port.
+                    // Uncomment below to see all data read from port.
                     // Console.WriteLine(b);
                     myData.Enqueue(val);
                 }
+
+                // Reads next byte.
                 val = port.ReadByte();
 
                 // Clears the queue if it grows too large due to an extended read.
@@ -105,19 +104,17 @@ namespace GestureSenseLibrary
         /// <param name="port">Port to be read from at 115200 baud</param>
         public static void ReadPortToQueue(ref Queue myData, SerialPort port)
         {
-            try
-            {
-                if (!port.IsOpen)
-                {
-                    throw new Exception();
-                }
-            }
-            catch (Exception)
+            var val = 0;
+
+            // If port is not open.
+            if(!port.IsOpen)
             {
                 Console.Out.WriteLine("port is not open!");
+                return;
             }
 
-            int val = port.ReadByte();
+            // Reads initial data.
+            val = port.ReadByte();
 
             Console.WriteLine("Reading from port...");
 
@@ -127,18 +124,20 @@ namespace GestureSenseLibrary
                 // While value is not 255 which is the End Of Transmissoin byte.
                 while (val != 255)
                 {
-                    // Uncomment to see all data read from port.
+                    // Uncomment below to see all data read from port.
                     // Console.WriteLine(val);
 
                     // If value is between 0 and 252.
                     if ((val <= 252) && (val > 0))
                     {
-                        // Uncomment to see all data read from port.
+                        // Uncomment below to see all data read from port.
                         // Console.WriteLine(val);
                         myData.Enqueue(val);
                     }
+                    // Reads next byte.
                     val = port.ReadByte();
                 }
+                // Waits for incoming data and reads it.
                 val = port.ReadByte();
             }
             return;
@@ -151,35 +150,34 @@ namespace GestureSenseLibrary
         /// <returns>Int value related to a gesture</returns>
         public static int ReadGestureCode(SerialPort port)
         {
-            try
-            {
-                if (!port.IsOpen)
-                {
-                    throw new Exception();
-                }
-            }
-            catch (Exception)
+            var val = 0;
+
+            // If port is not open.
+            if (!port.IsOpen)
             {
                 Console.Out.WriteLine("port is not open!");
+                return -1;
             }
 
             Console.WriteLine("Reading from port...");
 
-            int val = port.ReadByte();
+            // Reads initial data.
+            val = port.ReadByte();
 
             // While value is not 255 which is the End Of Transmissoin byte.
             while (val != 255)
             {
-                // Uncomment to see all data read from port.
+                // Uncomment below to see all data read from port.
                 // Console.WriteLine(val);
 
                 // If value read from port is 252, next value is a gesture.
                 if (val == 252)
                 {
-                    // Uncomment to see all data read from port.
+                    // Uncomment below to see all data read from port.
                     // Console.WriteLine(val);
                     return port.ReadByte();
                 }
+                // Reads next byte.
                 val = port.ReadByte();
             }
             return -1;
@@ -195,20 +193,16 @@ namespace GestureSenseLibrary
             var myQueue = new Queue();
             var val = 0;
 
-            try
-            {
-                if (!port.IsOpen)
-                {
-                    throw new Exception();
-                }
-            }
-            catch (Exception)
+            // If port is not open.
+            if (!port.IsOpen)
             {
                 Console.Out.WriteLine("port is not open!");
+                return null;
             }
 
             Console.WriteLine("Reading from port...");
 
+            // Reads initial data.
             val = port.ReadByte();
 
             // While value is not 255 which is the End Of Transmissoin byte.
@@ -220,9 +214,7 @@ namespace GestureSenseLibrary
                 // If value read from port is 252, next value is a gesture.
                 if (val == 252)
                 {
-                    // Uncomment to see all data read from port.
-                    // Console.WriteLine(val);
-
+                    // Reads next byte.
                     val = port.ReadByte();
 
                     // While value is between -1 and 241.
@@ -230,11 +222,12 @@ namespace GestureSenseLibrary
                     {
                         myQueue.Enqueue(val);
                         // Uncomment to see values read from port.
-                        // Console.WriteLine(val);
+                        Console.WriteLine(val);
                         val = port.ReadByte();
                     }
                     return myQueue;
                 }
+                // Waits for incoming data and reads it.
                 val = port.ReadByte();
             }
             return myQueue;
@@ -285,6 +278,7 @@ namespace GestureSenseLibrary
                     }
                     else
                     {
+                        // Dequeue message byte.
                         myData.Dequeue();
                     }
                 }
@@ -337,6 +331,7 @@ namespace GestureSenseLibrary
                     // Moves value into queue.
                     newQueue.Enqueue(readVal);
                 }
+
                 else if (myQueue.Count != 0)
                 {
                     myQueue.Dequeue();
@@ -381,15 +376,16 @@ namespace GestureSenseLibrary
             // While the queue is not empty.
             while (xQueue.Count > 0)
             {
-                // Removes first item.
+                // Removes first byte to decrease reading inacuracy.
                 if (counter == 0)
                 {
+                    // Dequeue first byte.
                     xQueue.Dequeue();
 
                     // If the queue is holding more than 3 values.
                     if (xQueue.Count > 3)
                     {
-                        // Resetting first item.
+                        // Resetting second byte to be first byte.
                         traverse = (int)xQueue.Peek();
                         firstVal = traverse;
                         xMax = traverse;
@@ -505,7 +501,15 @@ namespace GestureSenseLibrary
                     // Click right twice.
                     System.Windows.Forms.SendKeys.SendWait("{RIGHT 2}");
                     break;
+
+                // Down swipe.
+                case 10:
+                    // Add keystoke to send here
+                    System.Windows.Forms.SendKeys.SendWait("");
+                    break;
+
                 // Add more cases here for more functionality.
+
                 default:
                     Console.WriteLine("Error: No Gesture");
                     break;
@@ -523,6 +527,7 @@ namespace GestureSenseLibrary
             var count = 0;
             var readVal = 0;
             var returnVal = 0;
+            var flag = 0;
 
             // Waits for queue to be filled.
             while (newQueue.Count == 0)
@@ -538,7 +543,15 @@ namespace GestureSenseLibrary
                 {
                     if (newQueue.Count != 0)
                     {
-                        readVal = (int)newQueue.Dequeue();
+                        // Protection against NULL Ref Exception.
+                        try
+                        {
+                            readVal = (int)newQueue.Dequeue();
+                        } catch (NullReferenceException)
+                        {
+                            Console.WriteLine("Error: Null Reference Exception");
+                        }
+
                         // Uncomment to see data being processed.
                         // Console.WriteLine(readVal);
 
@@ -552,6 +565,9 @@ namespace GestureSenseLibrary
                         else if (readVal > 0)
                         {
                             xVal = readVal;
+
+                            // Set flag.
+                            flag++;
                         }
                     }
                     count++;
@@ -559,29 +575,38 @@ namespace GestureSenseLibrary
 
                 count = 0;
 
+                // Default 40 90 150 40/50
+
                 // Adjust vales to change the size of the scrolling hitboxes. A graph showing the hitboxes
                 // is available in the info documentation.
                 // Scroll down.
-                if (zVal <= 30 && xVal > 90 && xVal < 150)
+                if ((zVal <= 30) && (xVal > 110) && (xVal < 140))
                 {
                     returnVal = SendKeystrokeToScroll(1);
                 }
                 // Scroll up.
-                else if (zVal >= 90 && xVal > 90 && xVal < 150)
+                else if ((zVal >= 70) && (xVal > 110) && (xVal < 140))
                 {
                     returnVal = SendKeystrokeToScroll(2);
                 }
                 // Scroll left.
-                else if (xVal <= 90 && zVal > 30 && zVal < 80)
+                else if ((flag != 3) && (xVal <= 110) && (zVal > 30) && (zVal < 70))
                 {
                     returnVal = SendKeystrokeToScroll(3);
                 }
                 // Scroll right.
-                else if (xVal >= 150 && zVal > 30 && zVal < 80)
+                else if ((flag != 3) && (xVal >= 140) && (zVal > 30) && (zVal < 70))
                 {
                     returnVal = SendKeystrokeToScroll(4);
                 }
 
+                // Resets every third byte read.
+                if(flag >= 3)
+                {
+                    flag = 0;
+                    //Console.Clear();
+                }
+                
                 if((returnVal == -1) || (newQueue.Count > 300))
                 {
                     newQueue.Clear();
@@ -596,14 +621,14 @@ namespace GestureSenseLibrary
                 {
                     Thread.Sleep(25);
                 }
-                Console.Clear();
+                //Console.Clear();
             }
             return;
         }
 
-
-    // Code below written by StackOverflow user "Jorge Ferreira" found at this link:
-    // https://stackoverflow.com/questions/115868/how-do-i-get-the-title-of-the-current-active-window-using-c
+/*****************************************************************************************************/
+// Code below written to find active window by StackOverflow user "Jorge Ferreira" found at this link:
+// https://stackoverflow.com/questions/115868/how-do-i-get-the-title-of-the-current-active-window-using-c
 
         // Creates pointer to identify active window.
         [DllImport("user32.dll")]
@@ -626,13 +651,16 @@ namespace GestureSenseLibrary
             return null;
         }
 
+//End of stack overflow solution
+/*****************************************************************************************************/
+
         /// <summary>
         /// Recieves direction to scroll then sends related keystokes to windows.
         /// </summary>
         /// <param name="direction">Int related to a keystoke or comination of keystokes to send</param>
         public static int SendKeystrokeToScroll(int direction)
         {
-            // Creates process variable for excel.
+           // Creates process variable for excel.
             var excel = Process.GetProcessesByName("EXCEL").FirstOrDefault();
             var chrome = Process.GetProcessesByName("chrome").FirstOrDefault();
 
@@ -643,10 +671,10 @@ namespace GestureSenseLibrary
                 return -1;
             }
 
-            // If Excel or Google Chrome are not the active windows.
+            // If neither Excel nor Google Chrome are the active windows.
             if ((GetActiveWindowTitle().Contains("excel") != true) && (GetActiveWindowTitle().Contains("chrome") != true))
             {
-                Console.WriteLine("Excel is not the active window...");
+                Console.WriteLine("Excel and Chrome are the active window...");
                 return -1;
             }
 
